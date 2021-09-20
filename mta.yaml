@@ -1,0 +1,94 @@
+_schema-version: "3.2"
+ID: git-gitproject1
+description: A Fiori application.
+version: 0.0.1
+modules:
+- name: git-gitproject1-dest-content
+  type: com.sap.application.content
+  requires:
+  - name: git-gitproject1-dest-srv
+    parameters:
+      content-target: true
+  - name: git-gitproject1-repo-host
+    parameters:
+      service-key:
+        name: git-gitproject1-repo-host-key
+  - name: git-gitproject1-uaa
+    parameters:
+      service-key:
+        name: git-gitproject1-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: git-gitproject1_repo_host
+          ServiceInstanceName: git-gitproject1-html5-srv
+          ServiceKeyName: git-gitproject1-repo-host-key
+          sap.cloud.service: git-gitproject1
+        - Authentication: OAuth2UserTokenExchange
+          Name: git-gitproject1_uaa
+          ServiceInstanceName: git-gitproject1-xsuaa-srv
+          ServiceKeyName: git-gitproject1-uaa-key
+          sap.cloud.service: git-gitproject1
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: git-gitproject1-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: git-gitproject1-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - gitgitproject1.zip
+      name: gitgitproject1
+      target-path: resources/
+- name: gitgitproject1
+  type: html5
+  path: .
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: git-gitproject1-dest-srv
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: git-gitproject1-dest-srv
+    service-plan: lite
+- name: git-gitproject1-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: git-gitproject1-xsuaa-srv
+    service-plan: application
+- name: git-gitproject1-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: git-gitproject1-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
